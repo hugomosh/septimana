@@ -11,7 +11,7 @@ const COLORS = {
 const LifeWeeksAndMoons = () => {
   const [birthdate, setBirthdate] = useState('1990-01-01');
   const [expectedAge, setExpectedAge] = useState(80);
-  const [cellSize, setCellSize] = useState(6);
+  const [cellSize, setCellSize] = useState(16);
   const [showMoonPhases, setShowMoonPhases] = useState(true);
   const [viewMode, setViewMode] = useState('weeks');
   const containerRef = useRef(null);
@@ -21,13 +21,26 @@ const LifeWeeksAndMoons = () => {
 
   useEffect(() => {
     const updateSize = () => {
+      console.log("updateSize");
+      
       if (!containerRef.current) return;
-      const totalWidth = containerRef.current.offsetWidth;
-      const itemsPerRow = viewMode === 'weeks' ? WEEKS_PER_ROW : MOONS_PER_ROW;
-      const reservedSpace = 32 + 32 + (itemsPerRow - 1) * 2 + 16;
-      const availableWidth = totalWidth - reservedSpace;
-      const calculatedSize = Math.floor(availableWidth / itemsPerRow);
-      setCellSize(Math.min(Math.max(calculatedSize, viewMode === 'weeks' ? 4 : 8), viewMode === 'weeks' ? 12 : 24));
+      
+      // Get the container width
+      const containerWidth = containerRef.current.offsetWidth;
+      const yearLabelWidth = 32; // Width of the year number column
+      const availableWidth = containerWidth - yearLabelWidth - (window.innerWidth >= 640 ? 48 : 16); // Less padding on mobile
+      
+      // Calculate size based on view mode
+      const columnsCount = viewMode === 'weeks' ? 52 : 13;
+      const gapTotal = columnsCount * (window.innerWidth >= 640 ? 2 : 1); // Smaller gaps on mobile
+      const calculatedSize = Math.floor((availableWidth - gapTotal) / columnsCount);
+      
+      // Base size of 28 for larger screens, scale down for mobile
+      const targetSize = window.innerWidth >= 640 ? 28 : 20;
+      
+      // Set the cell size
+      setCellSize(Math.max(calculatedSize, targetSize));
+     //setCellSize(48);
     };
 
     const observer = new ResizeObserver(updateSize);
@@ -104,10 +117,11 @@ const LifeWeeksAndMoons = () => {
   const years = Math.ceil(weeks.total / 52);
   const moonYears = Math.ceil(moons.total / MOONS_PER_ROW);
 
-  const renderWeeksView = () => (
+  const renderWeeksView = (cellSize) => (
+    
     [...Array(years)].map((_, yearIndex) => (
       <div key={yearIndex} className="flex">
-        <div className="w-8 text-xs flex items-center text-gray-500">{yearIndex}</div>
+        <div className="w-12 text-sm flex items-center text-gray-500">{yearIndex}</div>
         <div className="flex">
           {[...Array(52)].map((_, weekIndex) => {
             const absoluteWeekIndex = yearIndex * 52 + weekIndex;
@@ -126,7 +140,7 @@ const LifeWeeksAndMoons = () => {
                   height: `${cellSize}px`,
                   ...getMoonSquareStyle(isLived, illumination, showMoonPhases)
                 }}
-                className="mr-0.5 mb-0.5 rounded border"
+                className="mr-0.5 mb-0.5 sm:mr-1 sm:mb-1 border rounded-sm flex items-center justify-center"
                 title={`${weekDate.toLocaleDateString()}\nMoon illumination: ${Math.round(illumination * 100)}%`}
               />
             );
@@ -167,129 +181,137 @@ const LifeWeeksAndMoons = () => {
   );
 
   return (
-    <div ref={containerRef} className="w-full p-4 bg-white rounded-lg shadow-lg">
-      <div className="flex items-center gap-4 mb-6">
-        <input
-          type="date"
-          value={birthdate}
-          onChange={(e) => setBirthdate(e.target.value)}
-          className="px-3 py-2 border rounded"
-        />
-        <input
-          type="number"
-          value={expectedAge}
-          onChange={(e) => setExpectedAge(Number(e.target.value))}
-          min="1"
-          max="120"
-          className="px-3 py-2 border rounded w-24"
-        />
-        <div className="flex gap-2">
-          <button
-            onClick={() => setViewMode('weeks')}
-            className={`px-4 py-2 rounded border ${
-              viewMode === 'weeks'
-                ? 'bg-blue-500 text-white border-blue-600'
-                : 'bg-white text-gray-700 border-gray-300'
-            }`}
-          >
-            Weeks
-          </button>
-          <button
-            onClick={() => setViewMode('moons')}
-            className={`px-4 py-2 rounded border ${
-              viewMode === 'moons'
-                ? 'bg-blue-500 text-white border-blue-600'
-                : 'bg-white text-gray-700 border-gray-300'
-            }`}
-          >
-            Full Moons
-          </button>
-          {viewMode === 'weeks' && (
-            <button
-              onClick={() => setShowMoonPhases(prev => !prev)}
-              className={`px-4 py-2 rounded border ${
-                showMoonPhases 
-                  ? 'bg-blue-500 text-white border-blue-600' 
-                  : 'bg-white text-gray-700 border-gray-300'
-              }`}
-            >
-              Moon Phases
-            </button>
-          )}
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 w-full">
+      <div className="max-w-7xl mx-auto sm-p-4">
+        <div className="bg-white rounded-lg shadow-lg sm-p-4 p-1">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-6 flex-wrap">
+            <input
+              type="date"
+              value={birthdate}
+              onChange={(e) => setBirthdate(e.target.value)}
+              className="px-3 py-2 border rounded w-full sm:w-auto"
+            />
+            <input
+              type="number"
+              value={expectedAge}
+              onChange={(e) => setExpectedAge(Number(e.target.value))}
+              min="1"
+              max="120"
+              className="px-3 py-2 border rounded w-full sm:w-24"
+            />
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setViewMode('weeks')}
+                className={`px-4 py-2 rounded border ${
+                  viewMode === 'weeks'
+                    ? 'bg-blue-500 text-white border-blue-600'
+                    : 'bg-white text-gray-700 border-gray-300'
+                }`}
+              >
+                Weeks
+              </button>
+              <button
+                onClick={() => setViewMode('moons')}
+                className={`px-4 py-2 rounded border ${
+                  viewMode === 'moons'
+                    ? 'bg-blue-500 text-white border-blue-600'
+                    : 'bg-white text-gray-700 border-gray-300'
+                }`}
+              >
+                Full Moons
+              </button>
+              {viewMode === 'weeks' && (
+                <button
+                  onClick={() => setShowMoonPhases(prev => !prev)}
+                  className={`px-4 py-2 rounded border ${
+                    showMoonPhases 
+                      ? 'bg-blue-500 text-white border-blue-600' 
+                      : 'bg-white text-gray-700 border-gray-300'
+                  }`}
+                >
+                  Moon Phases
+                </button>
+              )}
+            </div>
+          </div>
 
-      <div className="w-full bg-slate-50 rounded-md p-4">
-        {viewMode === 'weeks' ? renderWeeksView() : renderMoonsView()}
-      </div>
+          <div className="overflow-auto">
+            <div className="bg-slate-50 rounded-md p-4 min-w-max">
+              {viewMode === 'weeks' ? renderWeeksView(cellSize) : renderMoonsView()}
+            </div>
+          </div>
 
-      <div className="mt-4 p-4 bg-slate-50 rounded-md space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {viewMode === 'weeks' ? (
-            <>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Weeks</h3>
-                <p className="text-lg font-semibold">{weeks.lived.toLocaleString()} lived</p>
-                <p className="text-sm text-gray-500">{(weeks.total - weeks.lived).toLocaleString()} remaining</p>
+          <div className="mt-4 bg-slate-50 rounded-md p-4 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {viewMode === 'weeks' ? (
+                <>
+                  <div className="p-4 bg-white rounded-md shadow-sm">
+                    <h3 className="text-sm font-medium text-gray-500">Weeks</h3>
+                    <p className="text-lg font-semibold">{weeks.lived.toLocaleString()} lived</p>
+                    <p className="text-sm text-gray-500">{(weeks.total - weeks.lived).toLocaleString()} remaining</p>
+                  </div>
+                  <div className="p-4 bg-white rounded-md shadow-sm">
+                    <h3 className="text-sm font-medium text-gray-500">Years</h3>
+                    <p className="text-lg font-semibold">{Math.floor(weeks.lived / 52)} lived</p>
+                    <p className="text-sm text-gray-500">{expectedAge - Math.floor(weeks.lived / 52)} remaining</p>
+                  </div>
+                  <div className="p-4 bg-white rounded-md shadow-sm">
+                    <h3 className="text-sm font-medium text-gray-500">Full Moons</h3>
+                    <p className="text-lg font-semibold">{moons.lived.toLocaleString()} seen</p>
+                    <p className="text-sm text-gray-500">{(moons.total - moons.lived).toLocaleString()} to come</p>
+                  </div>
+                  <div className="p-4 bg-white rounded-md shadow-sm">
+                    <h3 className="text-sm font-medium text-gray-500">Lunar Years</h3>
+                    <p className="text-lg font-semibold">{Math.floor(moons.lived / 13)} lived</p>
+                    <p className="text-sm text-gray-500">{Math.floor((moons.total - moons.lived) / 13)} ahead</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="p-4 bg-white rounded-md shadow-sm">
+                    <h3 className="text-sm font-medium text-gray-500">Full Moons</h3>
+                    <p className="text-lg font-semibold">{moons.lived.toLocaleString()} experienced</p>
+                    <p className="text-sm text-gray-500">{(moons.total - moons.lived).toLocaleString()} remaining</p>
+                  </div>
+                  <div className="p-4 bg-white rounded-md shadow-sm">
+                    <h3 className="text-sm font-medium text-gray-500">Lunar Years</h3>
+                    <p className="text-lg font-semibold">{Math.floor(moons.lived / 13)} completed</p>
+                    <p className="text-sm text-gray-500">{Math.floor((moons.total - moons.lived) / 13)} to go</p>
+                  </div>
+                  <div className="p-4 bg-white rounded-md shadow-sm">
+                    <h3 className="text-sm font-medium text-gray-500">Calendar Years</h3>
+                    <p className="text-lg font-semibold">{Math.floor(weeks.lived / 52)} lived</p>
+                    <p className="text-sm text-gray-500">{expectedAge - Math.floor(weeks.lived / 52)} ahead</p>
+                  </div>
+                  <div className="p-4 bg-white rounded-md shadow-sm">
+                    <h3 className="text-sm font-medium text-gray-500">Weeks</h3>
+                    <p className="text-lg font-semibold">{weeks.lived.toLocaleString()} passed</p>
+                    <p className="text-sm text-gray-500">{(weeks.total - weeks.lived).toLocaleString()} to come</p>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <div className="overflow-hidden">
+              <div 
+                className="mt-2 relative h-6 rounded border"
+                style={{ 
+                  width: '100%',
+                  borderColor: COLORS.borderFuture,
+                  background: COLORS.moonDark
+                }}
+              >
+                <div 
+                  className="absolute h-full transition-all duration-300"
+                  style={{ 
+                    width: `${(viewMode === 'weeks' ? weeks.lived / weeks.total : moons.lived / moons.total) * 100}%`,
+                    background: COLORS.moonLight,
+                    borderRight: `1px solid ${COLORS.borderLived}`
+                  }}
+                />
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Years</h3>
-                <p className="text-lg font-semibold">{Math.floor(weeks.lived / 52)} lived</p>
-                <p className="text-sm text-gray-500">{expectedAge - Math.floor(weeks.lived / 52)} remaining</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Full Moons</h3>
-                <p className="text-lg font-semibold">{moons.lived.toLocaleString()} seen</p>
-                <p className="text-sm text-gray-500">{(moons.total - moons.lived).toLocaleString()} to come</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Lunar Years</h3>
-                <p className="text-lg font-semibold">{Math.floor(moons.lived / 13)} lived</p>
-                <p className="text-sm text-gray-500">{Math.floor((moons.total - moons.lived) / 13)} ahead</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Full Moons</h3>
-                <p className="text-lg font-semibold">{moons.lived.toLocaleString()} experienced</p>
-                <p className="text-sm text-gray-500">{(moons.total - moons.lived).toLocaleString()} remaining</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Lunar Years</h3>
-                <p className="text-lg font-semibold">{Math.floor(moons.lived / 13)} completed</p>
-                <p className="text-sm text-gray-500">{Math.floor((moons.total - moons.lived) / 13)} to go</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Calendar Years</h3>
-                <p className="text-lg font-semibold">{Math.floor(weeks.lived / 52)} lived</p>
-                <p className="text-sm text-gray-500">{expectedAge - Math.floor(weeks.lived / 52)} ahead</p>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-500">Weeks</h3>
-                <p className="text-lg font-semibold">{weeks.lived.toLocaleString()} passed</p>
-                <p className="text-sm text-gray-500">{(weeks.total - weeks.lived).toLocaleString()} to come</p>
-              </div>
-            </>
-          )}
-        </div>
-        
-        <div 
-          className="mt-2 relative h-6 rounded border overflow-hidden"
-          style={{ 
-            width: `${WEEKS_PER_ROW * (cellSize + 2)}px`,
-            borderColor: COLORS.borderFuture,
-            background: COLORS.moonDark
-          }}
-        >
-          <div 
-            className="absolute h-full transition-all duration-300"
-            style={{ 
-              width: `${(viewMode === 'weeks' ? weeks.lived / weeks.total : moons.lived / moons.total) * 100}%`,
-              background: COLORS.moonLight,
-              borderRight: `1px solid ${COLORS.borderLived}`
-            }}
-          />
+            </div>
+          </div>
         </div>
       </div>
     </div>
